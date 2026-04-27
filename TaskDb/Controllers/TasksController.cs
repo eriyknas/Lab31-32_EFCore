@@ -148,11 +148,28 @@ public class TasksController : ControllerBase {
     public async Task<ActionResult<IEnumerable<TaskItem>>> GetOverdue() {
         var now = DateTime.UtcNow;
         var overdue = await _db.Tasks
-            .Where(t => t.DueDate != null 
-                        && t.DueDate < now 
+            .Where(t => t.DueDate != null
+                        && t.DueDate < now
                         && !t.IsCompleted)
             .OrderBy(t => t.DueDate)
             .ToListAsync();
         return Ok(overdue);
+    }
+    [HttpPatch("complete-all")]
+    public async Task<ActionResult> CompleteAll() {
+        var tasks = await _db.Tasks.Where(t => !t.IsCompleted).ToListAsync();
+        foreach (var task in tasks) {
+            task.IsCompleted = true;
+        }
+        await _db.SaveChangesAsync();
+        return Ok(new { Updated = tasks.Count });
+    }
+    [HttpDelete("completed")]
+    public async Task<ActionResult> DeleteCompleted()
+    {
+        var completedTasks = await _db.Tasks.Where(t => t.IsCompleted).ToListAsync();
+        _db.Tasks.RemoveRange(completedTasks);
+        await _db.SaveChangesAsync();
+        return Ok(new { Deleted = completedTasks.Count });
     }
 }
